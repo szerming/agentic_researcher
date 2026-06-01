@@ -9,7 +9,7 @@ class FileUtils:
         """
         Returns the path to the outputs directory.
         """
-        project_root = Path(__file__).parent.parent.parent
+        project_root = Path(__file__).parent.parent.parent.parent
         outputs_dir = project_root / "outputs"
         outputs_dir.mkdir(exist_ok=True)
         return outputs_dir

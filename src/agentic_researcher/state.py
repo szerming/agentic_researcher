@@ -1,3 +1,4 @@
+from __future__ import annotations
 from pydantic import BaseModel, Field
 from typing import List, Optional
 
@@ -50,11 +51,34 @@ class ReportSkeletonSection(BaseModel):
     title: str = Field(description="Heading title.")
     level: int = Field(description="Markdown heading level (e.g. 1 for #, 2 for ##, 3 for ###).")
     bullets: List[str] = Field(default_factory=list, description="List of bulleted research findings to include in this section.")
-    subsections: List['ReportSkeletonSection'] = Field(default_factory=list, description="Subsections nested under this section.")
+    subsections: List[ReportSkeletonSection] = Field(default_factory=list, description="Subsections nested under this section.")
+
+    def to_outline(self) -> str:
+        """Recursively converts the skeleton Pydantic model into a highly readable text string."""
+        lines = []
+        indent = "  " * (self.level - 1)
+        lines.append(f"{indent}Heading Level {self.level}: {self.title}")
+        lines.append(f"{indent}  Raw Findings to expand into prose:")
+        
+        for bullet in self.bullets:
+            lines.append(f"{indent}  - {bullet}")
+
+        for subsection in self.subsections:
+            lines.append(subsection.to_outline())
+
+        return "\n".join(lines) 
 
 class ReportSkeleton(BaseModel):
     title: str = Field(description="Title of the research report.")
     sections: List[ReportSkeletonSection] = Field(default_factory=list, description="List of top-level sections in the skeleton.")
+
+    def to_outline(self) -> str:
+        """Recursively converts the skeleton Pydantic model into a highly readable text string."""
+        lines = []
+        lines.append(f"Report Title: {self.title}")
+        for sec in self.sections:
+            lines.append(sec.to_outline())
+        return "\n".join(lines)
 
 class ResearchState(BaseModel):
     survey_data: Optional[SurveyData] = Field(default=None, description="Detailed user requirements gathered during the survey.")

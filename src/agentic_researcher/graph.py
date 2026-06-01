@@ -140,7 +140,8 @@ class ResearcherNode(BaseNode[ResearchState, ResearchDeps]):
         logger.info("🤖🤓 Research completed.")
 
         # dump intermediate file
-        filename = FileUtils.write_temporary_markdown_file(content=all_topic_findings, filename="research_output.md")
+        findings: list[str] = [topic_findings.to_markdown() for topic_findings in all_topic_findings]
+        filename = FileUtils.write_temporary_markdown_file(content=findings, filename="research_output.md")
         logger.info(f"🤖🤓 Intermediate research output dumped to {filename}")
         
         return EditorNode()
@@ -167,7 +168,7 @@ class EditorNode(BaseNode[ResearchState, ResearchDeps]):
         logger.info("🤖🪜 Report skeleton successfully generated.")
 
         # dump intermediate file
-        filename = FileUtils.write_temporary_markdown_file(content=result.output, filename="editor_skeleton.md")
+        filename = FileUtils.write_temporary_markdown_file(content=result.output, filename="editor_skeleton.json")
         logger.info(f"🤖🪜 Intermediate editor output dumped to {filename}")
 
         return WriterNode()
@@ -179,7 +180,7 @@ class WriterNode(BaseNode[ResearchState, ResearchDeps]):
         agent = get_writer_agent(model)
 
         survey_str = ctx.state.survey_data.model_dump_json(indent=2)
-        skeleton_str = ctx.state.skeleton.model_dump_json(indent=2)
+        skeleton_str = ctx.state.skeleton.to_outline()
 
         if ctx.state.proofreader_feedback and ctx.state.draft_report:
             logger.info(f"🤖📝 Revising draft (Revision Cycle {ctx.state.iteration_count})...")
