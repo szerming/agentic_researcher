@@ -1,49 +1,66 @@
+from agentic_researcher.utils.settings import Settings
 import argparse
 import asyncio
 import os
 import sys
-from dotenv import load_dotenv
+import typer
+from loguru import logger
 
 from agentic_researcher.graph import research_graph, SurveyNode
 from agentic_researcher.state import ResearchState
 from agentic_researcher.deps import ResearchDeps
+from pathlib import Path
 
-async def async_main():
-    load_dotenv()
+app = typer.Typer()
 
-    parser = argparse.ArgumentParser(description="Multi-Agent Technical Researcher Workflow")
-    parser.add_argument(
-        "--model",
-        type=str,
-        default=os.getenv("RESEARCH_MODEL", "gemini-2.5-flash-lite"),
-        help="Google Gemini model name (default: gemini-2.5-flash-lite)"
-    )
-    parser.add_argument(
-        "--output",
-        type=str,
-        default="research_report.md",
-        help="Output markdown file path (default: research_report.md)"
-    )
-    args = parser.parse_args()
 
-    api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-    if not api_key:
-        print("Error: GEMINI_API_KEY or GOOGLE_API_KEY environment variable must be set.", file=sys.stderr)
-        print("Please check your .env file or environment setup.", file=sys.stderr)
-        sys.exit(1)
+@app.command()
+def run_research(
+    model: str | None = typer.Option(default=None, help="Model to use"),
+    output_filename: str | None = typer.Option(default=None, help="Output file path")
+):
+    """
+    Run the technical researcher agentic workflow.
+    """
 
+    settings = Settings()
+    if model is None:
+        model = settings.research_model
+    if output_filename is None:
+        output_filename = settings.output_filepath
+
+    logger.info(f"Running research with model: {model} and output file: {output_filename}")
+
+    output_dir = Path(__file__).parent.parent.parent / "outputs"
+    output_dir.mkdir(exist_ok=True)
+    output_path = output_dir / output_filename
+
+    print("==========================================")
+    print("🚀 Welcome to the Technical Researcher Agentic Workflow!")
+    print(f"Using Model: {model}")
+    print(f"Output File: {output_path}")
+    print("==========================================")
+
+    try:
+        asyncio.run(async_main(model=model, output_path=output_path))
+
+        print("\n==========================================")
+        print(f"Success! Technical research report released to: {output_path}")
+        print("==========================================")
+
+    except KeyboardInterrupt:
+        print("\n⛔ Exited due to KeyboardInterrupt.")
+        sys.exit(0)
+
+
+
+async def async_main(model: str, output_path: str, gemini_api_key: str):
     state = ResearchState()
     deps = ResearchDeps(
-        model_name=args.model,
-        api_key=api_key,
-        output_filepath=args.output
+        model_name=model,
+        api_key=gemini_api_key,
+        output_filepath=output_path
     )
-
-    print("==========================================")
-    print("Welcome to the Technical Researcher Agentic Workflow!")
-    print(f"Using Model: {args.model}")
-    print(f"Output File: {args.output}")
-    print("==========================================")
 
     try:
         result_path = await research_graph.run(
@@ -51,21 +68,9 @@ async def async_main():
             state=state,
             deps=deps
         )
-        print("\n==========================================")
-        print(f"Success! Technical research report released to: {result_path}")
-        print("==========================================")
     except Exception as e:
-        print(f"\nWorkflow failed with error: {e}", file=sys.stderr)
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
-
-def main():
-    try:
-        asyncio.run(async_main())
-    except KeyboardInterrupt:
-        print("\nExited due to KeyboardInterrupt.")
-        sys.exit(0)
+        logger.error(f"\nWorkflow failed with error: {e}")
+        raise e
 
 if __name__ == "__main__":
-    main()
+    app()

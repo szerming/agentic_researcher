@@ -12,6 +12,8 @@ dependencies = [
     "pydantic>=2.13.4",
     "pydantic-ai>=1.104.0",
     "pydantic-graph>=1.104.0",
+    "pydantic-settings>=2.14.1",
+    "typer>=0.25.1",
 ]
 
 [project.scripts]

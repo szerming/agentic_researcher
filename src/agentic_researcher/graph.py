@@ -117,7 +117,7 @@ class ResearcherNode(BaseNode[ResearchState, ResearchDeps]):
             sub_findings_list = []
 
             for sub in topic.subtopics:
-                logger.info(f"🤖🤓 Researching Subtopic: {sub.name}...")
+                logger.info(f"🤖🤓 \tResearching Subtopic: {sub.name}...")
                 researcher_prompt = (
                     f"Topic: {topic.name}\n"
                     f"Subtopic Name: {sub.name}\n"

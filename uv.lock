@@ -23,6 +23,8 @@ dependencies = [
     { name = "pydantic" },
     { name = "pydantic-ai" },
     { name = "pydantic-graph" },
+    { name = "pydantic-settings" },
+    { name = "typer" },
 ]
 
 [package.dev-dependencies]
@@ -36,6 +38,8 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.13.4" },
     { name = "pydantic-ai", specifier = ">=1.104.0" },
     { name = "pydantic-graph", specifier = ">=1.104.0" },
+    { name = "pydantic-settings", specifier = ">=2.14.1" },
+    { name = "typer", specifier = ">=0.25.1" },
 ]
 
 [package.metadata.requires-dev]
