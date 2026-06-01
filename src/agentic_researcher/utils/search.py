@@ -3,6 +3,7 @@ import httpx
 import re
 from html import unescape
 from typing import List, Dict
+from loguru import logger
 
 async def search_duckduckgo(query: str, max_results: int = 5) -> List[Dict[str, str]]:
     """
@@ -14,6 +15,7 @@ async def search_duckduckgo(query: str, max_results: int = 5) -> List[Dict[str, 
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/119.0"
     }
     data = {"q": query}
+    logger.debug(f"🌎💻 Search query: {query}")
     try:
         async with httpx.AsyncClient(headers=headers, follow_redirects=True, timeout=10.0) as client:
             resp = await client.post(url, data=data)
@@ -50,8 +52,10 @@ async def search_duckduckgo(query: str, max_results: int = 5) -> List[Dict[str, 
 
                 if len(results) >= max_results:
                     break
-
+                
+            logger.debug(f"🌎💻 Search results: {results}")
             return results
-    except Exception:
+    except Exception as exc:
         # Gracefully return empty list on any network/parsing failure
+        logger.error(f"🌎💻 Search failed: {exc}")
         return []
