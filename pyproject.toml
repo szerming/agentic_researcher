@@ -1,0 +1,32 @@
+[project]
+name = "agentic-researcher"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "szerming", email = "szerming@gmail.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "loguru>=0.7.3",
+    "pydantic>=2.13.4",
+    "pydantic-ai>=1.104.0",
+    "pydantic-graph>=1.104.0",
+]
+
+[project.scripts]
+agentic-researcher = "agentic_researcher:main"
+
+[build-system]
+requires = ["uv_build>=0.10.0,<0.11.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+]
+
+
+[tool.poe.tasks]
+run-research = "--env-file .env -m agentic_researcher.cli"
+test = "pytest -s"
