@@ -1,5 +1,6 @@
 from agentic_researcher.state import ReportSkeleton, ReportSkeletonSection
 
+
 class TestReportSkeleton:
     def test_generate_outline(self):
         sec1 = ReportSkeletonSection(
@@ -17,9 +18,9 @@ class TestReportSkeleton:
                             level=3,
                             bullets=["Bullet 1.1.1", "Bullet 1.1.2"],
                         )
-                    ]
+                    ],
                 )
-            ]
+            ],
         )
 
         sec2 = ReportSkeletonSection(

@@ -1,24 +1,31 @@
-from pydantic_ai import Agent, RunContext
+from pydantic_ai import Agent
 from pydantic_ai.models.google import GoogleModel
 from agentic_researcher.state import SubtopicFindings
-from agentic_researcher.utils.search import search_duckduckgo
 from pydantic_ai.common_tools.duckduckgo import duckduckgo_search_tool
 from pydantic_ai.common_tools.tavily import tavily_search_tool
 
-def get_researcher_agent(model: GoogleModel, tavily_api_key: str | None = None) -> Agent[None, SubtopicFindings]:
-    tools = duckduckgo_search_tool() if tavily_api_key is None else tavily_search_tool(api_key=tavily_api_key)
-    
+from agentic_researcher.utils.settings import Settings
+
+
+def get_researcher_agent(model: GoogleModel) -> Agent[None, SubtopicFindings]:
+    settings = Settings()
+    tools = (
+        duckduckgo_search_tool()
+        if settings.tavily_api_key is None
+        else tavily_search_tool(api_key=settings.tavily_api_key)
+    )
+
     agent = Agent(
         model,
         output_type=SubtopicFindings,
-        tools=tools,
+        tools=[tools],
         system_prompt=(
             "You are an expert technical researcher. Your task is to investigate a given subtopic using the web search tool. "
             "You should formulate search queries, execute them, analyze the results, and extract concrete, detailed, and accurate findings.\n\n"
             "Format the output as bulleted findings (each finding should be a complete, informative technical statement or fact) "
             "and list the source URLs or reference names used. Try to be detailed and cover the depth of the subtopic. "
             "If the search returns no results or fails, use your internal parametric knowledge to answer the subtopic as best as you can."
-        )
+        ),
     )
 
     # @agent.tool

@@ -1,10 +1,6 @@
-from _pytest import config
-from anthropic.types import effort_capability
 from typing import Union
 from pydantic_graph import BaseNode, End, GraphBuilder, GraphRunContext
-from agentic_researcher.state import (
-    ResearchState, TopicFindings, SubtopicFindings
-)
+from agentic_researcher.state import ResearchState, TopicFindings, SubtopicFindings
 from agentic_researcher.deps import ResearchDeps, get_model
 from agentic_researcher.agents.survey import get_survey_agent, SurveyComplete
 from agentic_researcher.agents.planning import get_planning_agent
@@ -15,8 +11,11 @@ from agentic_researcher.agents.proofreader import get_proofreader_agent
 from loguru import logger
 from agentic_researcher.utils.file_utils import FileUtils
 
+
 class SurveyNode(BaseNode[ResearchState, ResearchDeps]):
-    async def run(self, ctx: GraphRunContext[ResearchState, ResearchDeps]) -> "ResearchPlanningNode":
+    async def run(
+        self, ctx: GraphRunContext[ResearchState, ResearchDeps]
+    ) -> "ResearchPlanningNode":
         logger.info("🤖🤔 Survey Phase...")
         model = get_model(ctx.deps.model_name, ctx.deps.api_key)
         agent = get_survey_agent(model)
@@ -51,8 +50,11 @@ class SurveyNode(BaseNode[ResearchState, ResearchDeps]):
         logger.debug(f"🤖🤔 [Survey data] {ctx.state.survey_data}")
         return ResearchPlanningNode()
 
+
 class ResearchPlanningNode(BaseNode[ResearchState, ResearchDeps]):
-    async def run(self, ctx: GraphRunContext[ResearchState, ResearchDeps]) -> "ResearcherNode":
+    async def run(
+        self, ctx: GraphRunContext[ResearchState, ResearchDeps]
+    ) -> "ResearcherNode":
         logger.info("🤖📐 Research Planning Phase...")
         model = get_model(ctx.deps.model_name, ctx.deps.api_key)
         agent = get_planning_agent(model)
@@ -79,8 +81,12 @@ class ResearchPlanningNode(BaseNode[ResearchState, ResearchDeps]):
 
             logger.info("🤖📐 Research Planning Phase completed. ")
             print("\nOptions: 👉 ")
-            print("1. Enter 'approve' to approve this research plan and proceed to web research.")
-            print("2. Enter any comments, additions, or changes you want to make to the plan.")
+            print(
+                "1. Enter 'approve' to approve this research plan and proceed to web research."
+            )
+            print(
+                "2. Enter any comments, additions, or changes you want to make to the plan."
+            )
 
             try:
                 user_input = input("\nYour choice/feedback: ").strip()
@@ -88,7 +94,7 @@ class ResearchPlanningNode(BaseNode[ResearchState, ResearchDeps]):
                 print("\nPlanning cancelled.")
                 raise
 
-            if user_input.lower() == 'approve':
+            if user_input.lower() == "approve":
                 ctx.state.research_plan = plan
                 print("\nResearch plan approved!")
                 logger.debug(f"🤖📐 [Research plan] {plan}")
@@ -105,8 +111,11 @@ class ResearchPlanningNode(BaseNode[ResearchState, ResearchDeps]):
 
         return ResearcherNode()
 
+
 class ResearcherNode(BaseNode[ResearchState, ResearchDeps]):
-    async def run(self, ctx: GraphRunContext[ResearchState, ResearchDeps]) -> "EditorNode":
+    async def run(
+        self, ctx: GraphRunContext[ResearchState, ResearchDeps]
+    ) -> "EditorNode":
         logger.info("🤖🤓 Research Phase...")
         model = get_model(ctx.deps.model_name, ctx.deps.api_key)
         agent = get_researcher_agent(model)
@@ -131,30 +140,38 @@ class ResearcherNode(BaseNode[ResearchState, ResearchDeps]):
                 sub_findings_list.append(findings)
                 logger.info(f"🤖🤓 \t\t-> Extracted {len(findings.findings)} findings.")
 
-            all_topic_findings.append(TopicFindings(
-                topic_name=topic.name,
-                subtopics=sub_findings_list
-            ))
+            all_topic_findings.append(
+                TopicFindings(topic_name=topic.name, subtopics=sub_findings_list)
+            )
 
         ctx.state.findings = all_topic_findings
         logger.info("🤖🤓 Research completed.")
 
         # dump intermediate file
-        findings: list[str] = [topic_findings.to_markdown() for topic_findings in all_topic_findings]
-        filename = FileUtils.write_temporary_markdown_file(content=findings, filename="research_output.md")
+        findings: list[str] = [
+            topic_findings.to_markdown() for topic_findings in all_topic_findings
+        ]
+        filename = FileUtils.write_temporary_markdown_file(
+            content=findings, filename="research_output.md"
+        )
         logger.info(f"🤖🤓 Intermediate research output dumped to {filename}")
-        
+
         return EditorNode()
 
+
 class EditorNode(BaseNode[ResearchState, ResearchDeps]):
-    async def run(self, ctx: GraphRunContext[ResearchState, ResearchDeps]) -> "WriterNode":
+    async def run(
+        self, ctx: GraphRunContext[ResearchState, ResearchDeps]
+    ) -> "WriterNode":
         logger.info("🤖🪜 Editing Phase...")
         model = get_model(ctx.deps.model_name, ctx.deps.api_key)
         agent = get_editor_agent(model)
 
         survey_str = ctx.state.survey_data.model_dump_json(indent=2)
         plan_str = ctx.state.research_plan.model_dump_json(indent=2)
-        findings_str = "\n\n".join([f.model_dump_json(indent=2) for f in ctx.state.findings])
+        findings_str = "\n\n".join(
+            [f.model_dump_json(indent=2) for f in ctx.state.findings]
+        )
 
         prompt = (
             f"Survey Requirements:\n{survey_str}\n\n"
@@ -163,18 +180,23 @@ class EditorNode(BaseNode[ResearchState, ResearchDeps]):
             "Please design the report skeleton matching these inputs."
         )
 
-        result = await agent.run(prompt)        
+        result = await agent.run(prompt)
         ctx.state.skeleton = result.output
         logger.info("🤖🪜 Report skeleton successfully generated.")
 
         # dump intermediate file
-        filename = FileUtils.write_temporary_markdown_file(content=result.output, filename="editor_skeleton.json")
+        filename = FileUtils.write_temporary_markdown_file(
+            content=result.output, filename="editor_skeleton.json"
+        )
         logger.info(f"🤖🪜 Intermediate editor output dumped to {filename}")
 
         return WriterNode()
 
+
 class WriterNode(BaseNode[ResearchState, ResearchDeps]):
-    async def run(self, ctx: GraphRunContext[ResearchState, ResearchDeps]) -> "ProofReadNode":
+    async def run(
+        self, ctx: GraphRunContext[ResearchState, ResearchDeps]
+    ) -> "ProofReadNode":
         logger.info("🤖📝 Writing Phase...")
         model = get_model(ctx.deps.model_name, ctx.deps.api_key)
         agent = get_writer_agent(model)
@@ -183,7 +205,9 @@ class WriterNode(BaseNode[ResearchState, ResearchDeps]):
         skeleton_str = ctx.state.skeleton.to_outline()
 
         if ctx.state.proofreader_feedback and ctx.state.draft_report:
-            logger.info(f"🤖📝 Revising draft (Revision Cycle {ctx.state.iteration_count})...")
+            logger.info(
+                f"🤖📝 Revising draft (Revision Cycle {ctx.state.iteration_count})..."
+            )
             feedback_str = "\n".join([f"- {f}" for f in ctx.state.proofreader_feedback])
             prompt = (
                 f"Survey Requirements:\n{survey_str}\n\n"
@@ -205,10 +229,13 @@ class WriterNode(BaseNode[ResearchState, ResearchDeps]):
         logger.info("🤖📝 Report draft generated successfully.")
         return ProofReadNode()
 
+
 class ProofReadNode(BaseNode[ResearchState, ResearchDeps]):
     MAX_ITERATIONS = 3
-    
-    async def run(self, ctx: GraphRunContext[ResearchState, ResearchDeps]) -> Union["WriterNode", End[str]]:
+
+    async def run(
+        self, ctx: GraphRunContext[ResearchState, ResearchDeps]
+    ) -> Union["WriterNode", End[str]]:
         logger.info("🤖👩🏻‍💻 Proof-Read Phase...")
         model = get_model(ctx.deps.model_name, ctx.deps.api_key)
         agent = get_proofreader_agent(model)
@@ -226,20 +253,25 @@ class ProofReadNode(BaseNode[ResearchState, ResearchDeps]):
         res_data = result.output
 
         if res_data.satisfied:
-            logger.info("✅️ [Proofreader] The report is satisfactory! Releasing report...")
+            logger.info(
+                "✅️ [Proofreader] The report is satisfactory! Releasing report..."
+            )
             with open(ctx.deps.output_filepath, "w", encoding="utf-8") as f:
                 f.write(ctx.state.draft_report)
-
 
             return End(ctx.deps.output_filepath)
         else:
             ctx.state.iteration_count += 1
-            logger.info(f"🤖👩🏻‍💻 [Proofreader] Feedback received (Cycle {ctx.state.iteration_count}/{self.MAX_ITERATIONS}):")
+            logger.info(
+                f"🤖👩🏻‍💻 [Proofreader] Feedback received (Cycle {ctx.state.iteration_count}/{self.MAX_ITERATIONS}):"
+            )
             feedbacks = "\n".join([f"{fb}" for fb in res_data.feedback])
             logger.info(f"🤖👩🏻‍💻 feedback: \n {feedbacks}")
 
             if ctx.state.iteration_count >= self.MAX_ITERATIONS:
-                logger.warning("🤖👩🏻‍💻 Max revision iterations reached. Releasing final draft as-is.")
+                logger.warning(
+                    "🤖👩🏻‍💻 Max revision iterations reached. Releasing final draft as-is."
+                )
                 warning_header = (
                     "<!-- WARNING: Max revision iterations (3) reached. "
                     "The proofreader was not fully satisfied with the following points:\n"
@@ -253,11 +285,10 @@ class ProofReadNode(BaseNode[ResearchState, ResearchDeps]):
             ctx.state.proofreader_feedback = res_data.feedback
             return WriterNode()
 
+
 # Graph Builder Setup
 builder = GraphBuilder(
-    state_type=ResearchState,
-    deps_type=ResearchDeps,
-    output_type=str
+    state_type=ResearchState, deps_type=ResearchDeps, output_type=str
 )
 
 # Register nodes

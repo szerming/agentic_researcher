@@ -2,9 +2,16 @@ from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 from pydantic_ai.models.google import GoogleModel
 
+
 class ProofreadResult(BaseModel):
-    satisfied: bool = Field(description="True if the report accurately and comprehensively answers the survey requirements.")
-    feedback: list[str] = Field(default_factory=list, description="Detailed improvement feedback points if not satisfied. Empty if satisfied.")
+    satisfied: bool = Field(
+        description="True if the report accurately and comprehensively answers the survey requirements."
+    )
+    feedback: list[str] = Field(
+        default_factory=list,
+        description="Detailed improvement feedback points if not satisfied. Empty if satisfied.",
+    )
+
 
 def get_proofreader_agent(model: GoogleModel) -> Agent[None, ProofreadResult]:
     system_prompt = (

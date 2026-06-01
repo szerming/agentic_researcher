@@ -2,8 +2,8 @@ from agentic_researcher.utils.settings import Settings
 import pytest
 import os
 
-class TestSettings:
 
+class TestSettings:
     @pytest.fixture
     def setup_env(self):
         """
@@ -20,5 +20,3 @@ class TestSettings:
         assert settings.gemini_api_key == "test_key"
         assert settings.research_model == "test_model"
         assert settings.output_filepath == "research_report.md"
-
-        

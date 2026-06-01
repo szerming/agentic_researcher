@@ -4,13 +4,21 @@ from pydantic_ai import Agent
 from pydantic_ai.models.google import GoogleModel
 from agentic_researcher.state import SurveyData
 
+
 class AskQuestion(BaseModel):
-    question: str = Field(description="The next question to ask the user to gather the topic details.")
+    question: str = Field(
+        description="The next question to ask the user to gather the topic details."
+    )
+
 
 class SurveyComplete(BaseModel):
-    survey_data: SurveyData = Field(description="The finalized survey data once all context, scope, use cases, and areas of interest are understood.")
+    survey_data: SurveyData = Field(
+        description="The finalized survey data once all context, scope, use cases, and areas of interest are understood."
+    )
+
 
 SurveyResult = Union[AskQuestion, SurveyComplete]
+
 
 def get_survey_agent(model: GoogleModel) -> Agent[None, SurveyResult]:
     system_prompt = (

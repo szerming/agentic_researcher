@@ -2,6 +2,7 @@ from pydantic_ai import Agent
 from pydantic_ai.models.google import GoogleModel
 from agentic_researcher.state import ReportSkeleton
 
+
 def get_editor_agent(model: GoogleModel) -> Agent[None, ReportSkeleton]:
     system_prompt = (
         "You are an expert technical report editor. Your task is to design a detailed outline/skeleton of a research report.\n\n"

@@ -1,7 +1,5 @@
 from agentic_researcher.utils.settings import Settings
-import argparse
 import asyncio
-import os
 import sys
 import typer
 from loguru import logger
@@ -17,7 +15,7 @@ app = typer.Typer()
 @app.command()
 def run_research(
     model: str | None = typer.Option(default=None, help="Model to use"),
-    output_filename: str | None = typer.Option(default=None, help="Output file path")
+    output_filename: str | None = typer.Option(default=None, help="Output file path"),
 ):
     """
     Run the technical researcher agentic workflow.
@@ -29,7 +27,9 @@ def run_research(
     if output_filename is None:
         output_filename = settings.output_filepath
 
-    logger.info(f"Running research with model: {model} and output file: {output_filename}")
+    logger.info(
+        f"Running research with model: {model} and output file: {output_filename}"
+    )
 
     output_dir = Path(__file__).parent.parent.parent / "outputs"
     output_dir.mkdir(exist_ok=True)
@@ -42,7 +42,13 @@ def run_research(
     print("==========================================")
 
     try:
-        asyncio.run(async_main(model=model, output_path=output_path, gemini_api_key=settings.gemini_api_key))
+        asyncio.run(
+            async_main(
+                model=model,
+                output_path=output_path,
+                gemini_api_key=settings.gemini_api_key,
+            )
+        )
 
         print("\n==========================================")
         print(f"Success! Technical research report released to: {output_path}")
@@ -53,24 +59,21 @@ def run_research(
         sys.exit(0)
 
 
-
 async def async_main(model: str, output_path: Path, gemini_api_key: str):
     state = ResearchState()
     deps = ResearchDeps(
-        model_name=model,
-        api_key=gemini_api_key,
-        output_filepath=str(output_path)
+        model_name=model, api_key=gemini_api_key, output_filepath=str(output_path)
     )
 
     try:
         result_path = await research_graph.run(
-            inputs=SurveyNode(),
-            state=state,
-            deps=deps
+            inputs=SurveyNode(), state=state, deps=deps
         )
+        logger.debug(f"Research workflow completed. Final report at: {result_path}")
     except Exception as e:
         logger.error(f"\nWorkflow failed with error: {e}")
         raise e
+
 
 if __name__ == "__main__":
     app()

@@ -2,6 +2,7 @@ import pytest
 from agentic_researcher.graph import research_graph
 from agentic_researcher.utils.search import search_duckduckgo
 
+
 def test_graph_structure():
     # Verify that the graph builds correctly and has all required nodes registered
     assert research_graph is not None
@@ -11,6 +12,7 @@ def test_graph_structure():
     assert "EditorNode" in research_graph.nodes
     assert "WriterNode" in research_graph.nodes
     assert "ProofReadNode" in research_graph.nodes
+
 
 @pytest.mark.anyio
 async def test_search_duckduckgo(monkeypatch):
