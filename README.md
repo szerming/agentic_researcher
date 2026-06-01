@@ -246,8 +246,10 @@ poe run-research
 #### CLI Options
 
 ```
---model   Google Gemini model name (default: from RESEARCH_MODEL env or gemini-2.5-flash-lite)
---output  Output markdown file path (default: research_report.md)
+--help    Generate help
+--model   Model to use 
+--output-filename   Output file path (default:research_report.md)
+
 ```
 
 Example with custom options:
