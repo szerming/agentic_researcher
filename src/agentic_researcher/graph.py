@@ -286,7 +286,9 @@ class ProofReadNode(BaseNode[ResearchState, ResearchDeps]):
             return WriterNode()
 
 
+
 # Graph Builder Setup
+logger.info("Building the graph for Agentic Researcher...")
 builder = GraphBuilder(
     state_type=ResearchState, deps_type=ResearchDeps, output_type=str
 )
@@ -304,3 +306,7 @@ builder.add(builder.edge_from(builder.start_node).to(SurveyNode))
 
 # Build graph
 research_graph = builder.build()
+
+logger.info("Agentic Researcher graph successfully built. Ready to run!")
+mermaid_output = research_graph.render(title="Agentic Researcher Graph")
+logger.debug(f"Mermaid diagram generated. {{mermaid_output={mermaid_output}}}")

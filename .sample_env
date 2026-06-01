@@ -1,0 +1,6 @@
+# Rename to .env and replace the placeholders with your actual API keys and model name before running the application.
+# DO NOT CHECK IN THIS FILE WITH REAL API KEYS TO VERSION CONTROL!
+
+GEMINI_API_KEY=your-gemini-api-key-here
+RESEARCH_MODEL=gemini-3-flash-preview
+TAVILY_API_KEY=your-tavily-api-key-here

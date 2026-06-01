@@ -36,7 +36,8 @@ src/agentic_researcher/
 │   ├── writer.py          # Writer Agent
 │   └── proofreader.py     # Proof-Read Agent
 ├── utils/
-│   └── search.py          # DuckDuckGo web search utility
+│   ├── search.py          # DuckDuckGo web search utility and tavily search
+│   └── file_utils.py      # file util
 ├── state.py               # Pydantic state & data models
 ├── deps.py                # Dependency injection & model factory
 ├── graph.py               # Graph node definitions & wiring
@@ -121,6 +122,8 @@ src/agentic_researcher/
 ---
 
 ### Workflow Diagram
+![alt text](agent-state-flow.png)
+
 
 ```plantuml
 @startuml
@@ -220,12 +223,15 @@ Create a `.env` file in the project root:
 ```dotenv
 GEMINI_API_KEY=your-google-gemini-api-key
 RESEARCH_MODEL=gemini-2.5-flash-lite   # optional, overrides the default model
+TAVILY_API_KEY=your-tavily-api-key
+
 ```
 
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `GEMINI_API_KEY` | Yes | Google Gemini API key (also accepts `GOOGLE_API_KEY`) |
 | `RESEARCH_MODEL` | No | Gemini model name to use (default: `gemini-2.5-flash-lite`) |
+| `TAVILY_API_KEY` | No | API key for tavily search |
 
 ### Running the Workflow
 
