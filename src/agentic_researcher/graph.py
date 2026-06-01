@@ -140,8 +140,9 @@ class ResearcherNode(BaseNode[ResearchState, ResearchDeps]):
         logger.info("🤖🤓 Research completed.")
 
         # dump intermediate file
-        filename = FileUtils.write_temporary_markdown_file(content=all_topic_findings, filename="findings.md")
+        filename = FileUtils.write_temporary_markdown_file(content=all_topic_findings, filename="research_output.md")
         logger.info(f"🤖🤓 Intermediate research output dumped to {filename}")
+        
         return EditorNode()
 
 class EditorNode(BaseNode[ResearchState, ResearchDeps]):
@@ -161,9 +162,14 @@ class EditorNode(BaseNode[ResearchState, ResearchDeps]):
             "Please design the report skeleton matching these inputs."
         )
 
-        result = await agent.run(prompt)
+        result = await agent.run(prompt)        
         ctx.state.skeleton = result.output
         logger.info("🤖🪜 Report skeleton successfully generated.")
+
+        # dump intermediate file
+        filename = FileUtils.write_temporary_markdown_file(content=result.output, filename="editor_skeleton.md")
+        logger.info(f"🤖🪜 Intermediate editor output dumped to {filename}")
+
         return WriterNode()
 
 class WriterNode(BaseNode[ResearchState, ResearchDeps]):

@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from datetime import datetime
+from pydantic import BaseModel
 
 class FileUtils:
     @staticmethod
@@ -13,9 +14,12 @@ class FileUtils:
         outputs_dir.mkdir(exist_ok=True)
         return outputs_dir
 
-    def write_temporary_markdown_file(content: str | list[str], filename:str="temp.txt") -> Path:
+    def write_temporary_markdown_file(content: str | list[str] | BaseModel, filename:str="temp.txt") -> Path:
         if isinstance(content, list):
             content = "\n".join(content)
+        elif isinstance(content, BaseModel):
+            content = content.model_dump_json(indent=2)
+        
 
         timestamp = FileUtils.get_timestamp()
         filename = f"{timestamp}_{filename}"
