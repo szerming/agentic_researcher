@@ -15,8 +15,8 @@ async def async_main():
     parser.add_argument(
         "--model",
         type=str,
-        default=os.getenv("RESEARCH_MODEL", "gemini-1.5-flash"),
-        help="Google Gemini model name (default: gemini-1.5-flash)"
+        default=os.getenv("RESEARCH_MODEL", "gemini-2.5-flash-lite"),
+        help="Google Gemini model name (default: gemini-2.5-flash-lite)"
     )
     parser.add_argument(
         "--output",

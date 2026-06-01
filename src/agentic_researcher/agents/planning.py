@@ -12,6 +12,6 @@ def get_planning_agent(model: GoogleModel) -> Agent[None, ResearchPlan]:
     )
     return Agent(
         model,
-        result_type=ResearchPlan,
+        output_type=ResearchPlan,
         system_prompt=system_prompt,
     )

@@ -10,6 +10,7 @@ from agentic_researcher.agents.researcher import get_researcher_agent
 from agentic_researcher.agents.editor import get_editor_agent
 from agentic_researcher.agents.writer import get_writer_agent
 from agentic_researcher.agents.proofreader import get_proofreader_agent
+from loguru import logger
 
 class SurveyNode(BaseNode[ResearchState, ResearchDeps]):
     async def run(self, ctx: GraphRunContext[ResearchState, ResearchDeps]) -> 'ResearchPlanningNode':
@@ -17,13 +18,13 @@ class SurveyNode(BaseNode[ResearchState, ResearchDeps]):
         model = get_model(ctx.deps.model_name, ctx.deps.api_key)
         agent = get_survey_agent(model)
 
-        message_history = []
+        message_history = None
         prompt_msg = "Hello! I am your research Survey Agent. What technical topic would you like to research today?"
 
         while True:
             print(f"\n[Survey Agent] {prompt_msg}")
             try:
-                user_input = input("You: ").strip()
+                user_input = input("🧐You: 👉 ").strip()
             except (KeyboardInterrupt, EOFError):
                 print("\nSurvey cancelled.")
                 raise
@@ -32,7 +33,11 @@ class SurveyNode(BaseNode[ResearchState, ResearchDeps]):
                 continue
 
             result = await agent.run(user_input, message_history=message_history)
-            data = result.data
+            data = result.output
+
+            message_history = result.all_messages()
+            logger.debug(f"🎨 [Survey Agent] {message_history=}")
+
             if isinstance(data, SurveyComplete):
                 ctx.state.survey_data = data.survey_data
                 print("\n[Survey Agent] Great! I have gathered all requirements.")
@@ -54,7 +59,7 @@ class ResearchPlanningNode(BaseNode[ResearchState, ResearchDeps]):
         while True:
             print("\nGenerating research plan...")
             result = await agent.run(prompt)
-            plan = result.data
+            plan = result.output
 
             # Format and print the plan
             print("\n--- Proposed Research Plan ---")
@@ -114,7 +119,7 @@ class ResearcherNode(BaseNode[ResearchState, ResearchDeps]):
                     "Please search the web and extract key factual findings for this subtopic."
                 )
                 result = await agent.run(researcher_prompt)
-                findings: SubtopicFindings = result.data
+                findings: SubtopicFindings = result.output
                 sub_findings_list.append(findings)
                 print(f"    -> Extracted {len(findings.findings)} findings.")
 
@@ -144,7 +149,7 @@ class EditorNode(BaseNode[ResearchState, ResearchDeps]):
         )
 
         result = await agent.run(prompt)
-        ctx.state.skeleton = result.data
+        ctx.state.skeleton = result.output
         print("\nReport skeleton successfully generated.")
         return WriterNode()
 
@@ -176,7 +181,7 @@ class WriterNode(BaseNode[ResearchState, ResearchDeps]):
             )
 
         result = await agent.run(prompt)
-        ctx.state.draft_report = result.data
+        ctx.state.draft_report = result.output
         print("Report draft generated successfully.")
         return ProofReadNode()
 
@@ -196,7 +201,7 @@ class ProofReadNode(BaseNode[ResearchState, ResearchDeps]):
         )
 
         result = await agent.run(prompt)
-        res_data = result.data
+        res_data = result.output
 
         if res_data.satisfied:
             print("\n[Proofreader] The report is satisfactory! Releasing report...")

@@ -27,6 +27,6 @@ def get_survey_agent(model: GoogleModel) -> Agent[None, SurveyResult]:
     )
     return Agent(
         model,
-        result_type=SurveyResult,
+        output_type=SurveyResult,
         system_prompt=system_prompt,
     )

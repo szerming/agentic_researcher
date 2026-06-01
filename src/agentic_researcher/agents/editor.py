@@ -16,6 +16,6 @@ def get_editor_agent(model: GoogleModel) -> Agent[None, ReportSkeleton]:
     )
     return Agent(
         model,
-        result_type=ReportSkeleton,
+        output_type=ReportSkeleton,
         system_prompt=system_prompt,
     )

@@ -1,4 +1,4 @@
-from pydantic_ai import Agent
+from pydantic_ai import Agent, RunContext
 from pydantic_ai.models.google import GoogleModel
 from agentic_researcher.state import SubtopicFindings
 from agentic_researcher.utils.search import search_duckduckgo
@@ -6,7 +6,7 @@ from agentic_researcher.utils.search import search_duckduckgo
 def get_researcher_agent(model: GoogleModel) -> Agent[None, SubtopicFindings]:
     agent = Agent(
         model,
-        result_type=SubtopicFindings,
+        output_type=SubtopicFindings,
         system_prompt=(
             "You are an expert technical researcher. Your task is to investigate a given subtopic using the web search tool. "
             "You should formulate search queries, execute them, analyze the results, and extract concrete, detailed, and accurate findings.\n\n"
@@ -17,7 +17,7 @@ def get_researcher_agent(model: GoogleModel) -> Agent[None, SubtopicFindings]:
     )
 
     @agent.tool
-    async def search_web(query: str) -> str:
+    async def search_web(ctx: RunContext[None], query: str) -> str:
         """
         Search the web for information related to a query.
         Returns a list of search result titles, URLs, and snippets.

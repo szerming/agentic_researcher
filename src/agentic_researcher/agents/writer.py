@@ -16,6 +16,6 @@ def get_writer_agent(model: GoogleModel) -> Agent[None, str]:
     )
     return Agent(
         model,
-        result_type=str,
+        output_type=str,
         system_prompt=system_prompt,
     )

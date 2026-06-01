@@ -21,6 +21,6 @@ def get_proofreader_agent(model: GoogleModel) -> Agent[None, ProofreadResult]:
     )
     return Agent(
         model,
-        result_type=ProofreadResult,
+        output_type=ProofreadResult,
         system_prompt=system_prompt,
     )
