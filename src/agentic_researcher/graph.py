@@ -1,3 +1,4 @@
+from _pytest import config
 from anthropic.types import effort_capability
 from typing import Union
 from pydantic_graph import BaseNode, End, GraphBuilder, GraphRunContext
@@ -12,9 +13,10 @@ from agentic_researcher.agents.editor import get_editor_agent
 from agentic_researcher.agents.writer import get_writer_agent
 from agentic_researcher.agents.proofreader import get_proofreader_agent
 from loguru import logger
+from agentic_researcher.utils.file_utils import FileUtils
 
 class SurveyNode(BaseNode[ResearchState, ResearchDeps]):
-    async def run(self, ctx: GraphRunContext[ResearchState, ResearchDeps]) -> 'ResearchPlanningNode':
+    async def run(self, ctx: GraphRunContext[ResearchState, ResearchDeps]) -> "ResearchPlanningNode":
         logger.info("🤖🤔 Survey Phase...")
         model = get_model(ctx.deps.model_name, ctx.deps.api_key)
         agent = get_survey_agent(model)
@@ -50,7 +52,7 @@ class SurveyNode(BaseNode[ResearchState, ResearchDeps]):
         return ResearchPlanningNode()
 
 class ResearchPlanningNode(BaseNode[ResearchState, ResearchDeps]):
-    async def run(self, ctx: GraphRunContext[ResearchState, ResearchDeps]) -> 'ResearcherNode':
+    async def run(self, ctx: GraphRunContext[ResearchState, ResearchDeps]) -> "ResearcherNode":
         logger.info("🤖📐 Research Planning Phase...")
         model = get_model(ctx.deps.model_name, ctx.deps.api_key)
         agent = get_planning_agent(model)
@@ -104,7 +106,7 @@ class ResearchPlanningNode(BaseNode[ResearchState, ResearchDeps]):
         return ResearcherNode()
 
 class ResearcherNode(BaseNode[ResearchState, ResearchDeps]):
-    async def run(self, ctx: GraphRunContext[ResearchState, ResearchDeps]) -> 'EditorNode':
+    async def run(self, ctx: GraphRunContext[ResearchState, ResearchDeps]) -> "EditorNode":
         logger.info("🤖🤓 Research Phase...")
         model = get_model(ctx.deps.model_name, ctx.deps.api_key)
         agent = get_researcher_agent(model)
@@ -136,10 +138,14 @@ class ResearcherNode(BaseNode[ResearchState, ResearchDeps]):
 
         ctx.state.findings = all_topic_findings
         logger.info("🤖🤓 Research completed.")
+
+        # dump intermediate file
+        filename = FileUtils.write_temporary_markdown_file(content=all_topic_findings, filename="findings.md")
+        logger.info(f"🤖🤓 Intermediate research output dumped to {filename}")
         return EditorNode()
 
 class EditorNode(BaseNode[ResearchState, ResearchDeps]):
-    async def run(self, ctx: GraphRunContext[ResearchState, ResearchDeps]) -> 'WriterNode':
+    async def run(self, ctx: GraphRunContext[ResearchState, ResearchDeps]) -> "WriterNode":
         logger.info("🤖🪜 Editing Phase...")
         model = get_model(ctx.deps.model_name, ctx.deps.api_key)
         agent = get_editor_agent(model)
@@ -161,7 +167,7 @@ class EditorNode(BaseNode[ResearchState, ResearchDeps]):
         return WriterNode()
 
 class WriterNode(BaseNode[ResearchState, ResearchDeps]):
-    async def run(self, ctx: GraphRunContext[ResearchState, ResearchDeps]) -> 'ProofReadNode':
+    async def run(self, ctx: GraphRunContext[ResearchState, ResearchDeps]) -> "ProofReadNode":
         logger.info("🤖📝 Writing Phase...")
         model = get_model(ctx.deps.model_name, ctx.deps.api_key)
         agent = get_writer_agent(model)
@@ -195,7 +201,7 @@ class WriterNode(BaseNode[ResearchState, ResearchDeps]):
 class ProofReadNode(BaseNode[ResearchState, ResearchDeps]):
     MAX_ITERATIONS = 3
     
-    async def run(self, ctx: GraphRunContext[ResearchState, ResearchDeps]) -> Union['WriterNode', End[str]]:
+    async def run(self, ctx: GraphRunContext[ResearchState, ResearchDeps]) -> Union["WriterNode", End[str]]:
         logger.info("🤖👩🏻‍💻 Proof-Read Phase...")
         model = get_model(ctx.deps.model_name, ctx.deps.api_key)
         agent = get_proofreader_agent(model)

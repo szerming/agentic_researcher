@@ -5,7 +5,7 @@ from html import unescape
 from typing import List, Dict
 from loguru import logger
 
-async def search_duckduckgo(query: str, max_results: int = 5) -> List[Dict[str, str]]:
+async def search_duckduckgo(query: str, max_results: int = 10) -> List[Dict[str, str]]:
     """
     Search DuckDuckGo Lite and parse the results using regex.
     Returns a list of dicts with keys: 'title', 'url', 'snippet'.
@@ -15,9 +15,9 @@ async def search_duckduckgo(query: str, max_results: int = 5) -> List[Dict[str, 
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/119.0"
     }
     data = {"q": query}
-    logger.debug(f"🌎💻 Search query: {query}")
+    logger.debug(f"🌎💻 Search query: {query}. Max results: {max_results}")
     try:
-        async with httpx.AsyncClient(headers=headers, follow_redirects=True, timeout=10.0) as client:
+        async with httpx.AsyncClient(headers=headers, follow_redirects=True, timeout=20.0) as client:
             resp = await client.post(url, data=data)
             if resp.status_code != 200:
                 return []

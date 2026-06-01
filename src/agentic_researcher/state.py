@@ -26,9 +26,25 @@ class SubtopicFindings(BaseModel):
     findings: List[str] = Field(default_factory=list, description="Synthesized bullet-point facts and statements.")
     sources: List[str] = Field(default_factory=list, description="Source URLs or reference names used to gather these findings.")
 
+    def to_markdown(self) -> str:
+        markdown = f"### {self.subtopic_name}\n"
+        for finding in self.findings:
+            markdown += f"- {finding}\n"
+        if self.sources:
+            markdown += "\n**Sources:**\n"
+            for source in self.sources:
+                markdown += f"- {source}\n"
+        return markdown
+
 class TopicFindings(BaseModel):
     topic_name: str = Field(description="Name of the main topic.")
     subtopics: List[SubtopicFindings] = Field(default_factory=list, description="Findings gathered for each subtopic under this main topic.")
+
+    def to_markdown(self) -> str:
+        markdown = f"## {self.topic_name}\n"
+        for subtopic in self.subtopics:
+            markdown += subtopic.to_markdown()
+        return markdown
 
 class ReportSkeletonSection(BaseModel):
     title: str = Field(description="Heading title.")

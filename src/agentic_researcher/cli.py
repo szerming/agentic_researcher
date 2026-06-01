@@ -42,7 +42,7 @@ def run_research(
     print("==========================================")
 
     try:
-        asyncio.run(async_main(model=model, output_path=output_path))
+        asyncio.run(async_main(model=model, output_path=output_path, gemini_api_key=settings.gemini_api_key))
 
         print("\n==========================================")
         print(f"Success! Technical research report released to: {output_path}")
@@ -54,12 +54,12 @@ def run_research(
 
 
 
-async def async_main(model: str, output_path: str, gemini_api_key: str):
+async def async_main(model: str, output_path: Path, gemini_api_key: str):
     state = ResearchState()
     deps = ResearchDeps(
         model_name=model,
         api_key=gemini_api_key,
-        output_filepath=output_path
+        output_filepath=str(output_path)
     )
 
     try:
