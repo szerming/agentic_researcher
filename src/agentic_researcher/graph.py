@@ -1,3 +1,4 @@
+from agentic_researcher.utils.multiline_input import MultilineInput
 from typing import Union
 from pydantic_graph import BaseNode, End, GraphBuilder, GraphRunContext
 from agentic_researcher.state import ResearchState, TopicFindings, SubtopicFindings
@@ -24,9 +25,8 @@ class SurveyNode(BaseNode[ResearchState, ResearchDeps]):
         prompt_msg = "Hello! I am your research Survey Agent. What technical topic would you like to research today?"
 
         while True:
-            print(f"\n[Survey Agent] 👋👋: {prompt_msg}")
             try:
-                user_input = input("🤔You: 👉 ").strip()
+                user_input = MultilineInput.get_multiline_input(prompt=prompt_msg)
             except (KeyboardInterrupt, EOFError):
                 print("\nSurvey cancelled.")
                 raise
