@@ -1,3 +1,5 @@
+from agentic_researcher.state import ResearchPlanningDependencies
+from pydantic_ai import RunContext
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 from pydantic_ai.models.google import GoogleModel
@@ -25,9 +27,11 @@ def get_proofreader_agent(model: GoogleModel) -> Agent[None, ProofreadResult]:
         "If it is completely satisfactory, set `satisfied` to True and leave `feedback` empty. "
         "If there are gaps, inaccuracies, formatting issues, or areas requiring improvement, set `satisfied` to False "
         "and provide a list of concrete, actionable feedback points in the `feedback` list."
+        "\n\n"
     )
-    return Agent(
+    agent = Agent(
         model,
         output_type=ProofreadResult,
         system_prompt=system_prompt,
     )
+    return agent

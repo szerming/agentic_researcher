@@ -158,3 +158,21 @@ class ResearchState(BaseModel):
         default=0,
         description="The number of draft-proofread revision cycles completed.",
     )
+
+class ResearchPlanningDependencies(BaseModel):
+    """Input to the research planning stage. 
+    This contains the survey data, forming the base requirements, and optional previous 
+    research plan and user feedback for revision.
+    """
+    survey_data: SurveyData = Field(
+        description="Survey data from the user, providing the foundational requirements for the research plan."
+    )
+    previous_plan: Optional[ResearchPlan] = Field(
+        default=None,
+        description="Optional previous research plan. If provided, the agent should review and potentially revise it based on user feedback."
+    )
+    user_feedback: Optional[str] = Field(
+        default=None,
+        description="Optional user feedback on the previous plan. If provided, the agent should incorporate this feedback while revising the research plan."
+    )
+    

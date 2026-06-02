@@ -1,3 +1,4 @@
+from agentic_researcher.state import ResearchPlanningDependencies
 from agentic_researcher.utils.multiline_input import MultilineInput
 from typing import Union
 from pydantic_graph import BaseNode, End, GraphBuilder, GraphRunContext
@@ -14,6 +15,8 @@ from agentic_researcher.utils.file_utils import FileUtils
 
 
 class SurveyNode(BaseNode[ResearchState, ResearchDeps]):
+    """Node for gathering survey data from the user through a series of question and answer."""
+
     async def run(
         self, ctx: GraphRunContext[ResearchState, ResearchDeps]
     ) -> "ResearchPlanningNode":
@@ -52,6 +55,8 @@ class SurveyNode(BaseNode[ResearchState, ResearchDeps]):
 
 
 class ResearchPlanningNode(BaseNode[ResearchState, ResearchDeps]):
+    """Node for planning the research based on the survey data."""
+
     async def run(
         self, ctx: GraphRunContext[ResearchState, ResearchDeps]
     ) -> "ResearcherNode":
@@ -59,15 +64,19 @@ class ResearchPlanningNode(BaseNode[ResearchState, ResearchDeps]):
         model = get_model(ctx.deps.model_name, ctx.deps.api_key)
         agent = get_planning_agent(model)
 
-        survey_data_str = ctx.state.survey_data.model_dump_json(indent=2)
-        prompt = f"Please generate a research plan for these requirements:\n{survey_data_str}"
+        user_prompt = "Please generate a research plan based on the requirements provided in the SurveyData. "
 
         count = 1
+        deps = ResearchPlanningDependencies(survey_data=ctx.state.survey_data)
         while True:
             print(f"\nGenerating research plan ({count})...")
             count += 1
-            result = await agent.run(prompt)
+
+            logger.debug(f"🤖📐 [Research Planning Dependencies] {deps=}")
+
+            result = await agent.run(user_prompt=user_prompt, deps=deps)
             plan = result.output
+            deps.previous_plan = plan
 
             # Format and print the plan
             print("\n--- Proposed Research Plan ---")
@@ -92,6 +101,7 @@ class ResearchPlanningNode(BaseNode[ResearchState, ResearchDeps]):
                 user_input = input("\nYour choice/feedback: ").strip()
             except (KeyboardInterrupt, EOFError):
                 print("\nPlanning cancelled.")
+                logger.error("Planning cancelled by user.")
                 raise
 
             if user_input.lower() == "approve":
@@ -102,12 +112,7 @@ class ResearchPlanningNode(BaseNode[ResearchState, ResearchDeps]):
             elif not user_input:
                 continue
             else:
-                prompt = (
-                    f"Initial Requirements:\n{survey_data_str}\n\n"
-                    f"Previous Plan:\n{plan.model_dump_json(indent=2)}\n\n"
-                    f"User Feedback: {user_input}\n\n"
-                    "Please update the research plan based on this feedback."
-                )
+                deps.user_feedback = user_input
 
         return ResearcherNode()
 
