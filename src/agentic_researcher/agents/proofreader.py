@@ -1,3 +1,5 @@
+from google.genai.types import WebSearch
+from pydantic_ai.capabilities import Thinking
 from agentic_researcher.state import ResearchPlanningDependencies
 from pydantic_ai import RunContext
 from pydantic import BaseModel, Field
@@ -33,5 +35,6 @@ def get_proofreader_agent(model: GoogleModel) -> Agent[None, ProofreadResult]:
         model,
         output_type=ProofreadResult,
         system_prompt=system_prompt,
+        capabilities=[Thinking(effort="high")]
     )
     return agent

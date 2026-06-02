@@ -236,7 +236,7 @@ class WriterNode(BaseNode[ResearchState, ResearchDeps]):
 
 
 class ProofReadNode(BaseNode[ResearchState, ResearchDeps]):
-    MAX_ITERATIONS = 3
+    MAX_ITERATIONS = 5
 
     async def run(
         self, ctx: GraphRunContext[ResearchState, ResearchDeps]

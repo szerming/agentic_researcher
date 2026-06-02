@@ -3,7 +3,7 @@ from pydantic_ai.models.google import GoogleModel
 from agentic_researcher.state import SubtopicFindings
 from pydantic_ai.common_tools.duckduckgo import duckduckgo_search_tool
 from pydantic_ai.common_tools.tavily import tavily_search_tool
-
+from pydantic_ai.capabilities import Thinking, WebSearch
 from agentic_researcher.utils.settings import Settings
 
 
@@ -26,6 +26,10 @@ def get_researcher_agent(model: GoogleModel) -> Agent[None, SubtopicFindings]:
             "and list the source URLs or reference names used. Try to be detailed and cover the depth of the subtopic. "
             "If the search returns no results or fails, use your internal parametric knowledge to answer the subtopic as best as you can."
         ),
+        capabilities=[
+            Thinking(effort="high"),  # Encourages deeper analysis/planning before answering
+            # WebSearch()               # Built-in search integration (configured via environment)
+        ]
     )
 
     # @agent.tool
