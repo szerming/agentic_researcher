@@ -33,3 +33,4 @@ dev = [
 [tool.poe.tasks]
 run-research = "--env-file .env -m agentic_researcher.cli"
 test = "pytest -s"
+run-chat = "--env-file .env -m agentic_researcher.agents.fireside_chat"

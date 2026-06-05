@@ -1,17 +1,25 @@
-from agentic_researcher.state import ResearchPlanningDependencies
-from agentic_researcher.utils.multiline_input import MultilineInput
 from typing import Union
-from pydantic_graph import BaseNode, End, GraphBuilder, GraphRunContext
-from agentic_researcher.state import ResearchState, TopicFindings, SubtopicFindings
-from agentic_researcher.deps import ResearchDeps, get_model
-from agentic_researcher.agents.survey import get_survey_agent, SurveyComplete
-from agentic_researcher.agents.planning import get_planning_agent
-from agentic_researcher.agents.researcher import get_researcher_agent
-from agentic_researcher.agents.editor import get_editor_agent
-from agentic_researcher.agents.writer import get_writer_agent
-from agentic_researcher.agents.proofreader import get_proofreader_agent, ProofreadResult
+
 from loguru import logger
+from pydantic_graph import BaseNode, End, GraphBuilder, GraphRunContext
+
+from agentic_researcher.agents.editor import get_editor_agent
+from agentic_researcher.agents.planning import get_planning_agent
+from agentic_researcher.agents.proofreader import get_proofreader_agent, ProofreadResult
+from agentic_researcher.agents.researcher import get_researcher_agent
+from agentic_researcher.agents.survey import get_survey_agent
+from agentic_researcher.agents.writer import get_writer_agent
+from agentic_researcher.deps import ResearchDeps, get_model
+from agentic_researcher.state import (
+    ResearchPlanningDependencies,
+    FiresideChatOutput,
+    ConversationTurn,
+    QuestionAndAnswer,
+    ChatDetails,
+)
+from agentic_researcher.state import ResearchState, TopicFindings, SubtopicFindings
 from agentic_researcher.utils.file_utils import FileUtils
+from agentic_researcher.utils.multiline_input import MultilineInput
 
 
 class SurveyNode(BaseNode[ResearchState, ResearchDeps]):
@@ -20,37 +28,99 @@ class SurveyNode(BaseNode[ResearchState, ResearchDeps]):
     async def run(
         self, ctx: GraphRunContext[ResearchState, ResearchDeps]
     ) -> "ResearchPlanningNode":
-        logger.info("🤖🤔 Survey Phase...")
-        model = get_model(ctx.deps.model_name, ctx.deps.api_key)
-        agent = get_survey_agent(model)
+        # Track message history for context continuity
+        message_history = []
 
-        message_history = None
-        prompt_msg = "Hello! I am your research Survey Agent. What technical topic would you like to research today?"
+        # Track the accumulated structured data
+        final_output_state = FiresideChatOutput()
+
+        logger.info("🤖📐 Research Planning Phase...")
+        model = get_model(ctx.deps.model_name, ctx.deps.api_key)
+        fireside_chat_agent = get_survey_agent(model=model)
+
+        print("🔥 Fireside Chat Agent initialized.")
+        # print("Agent: Hello! Welcome back to the fire chat. What should we talk about today?")
+        # print("(Type 'stop' when you are ready to finish.)\n")
+
+        conversation: list[QuestionAndAnswer] = []
+        interviewer_question = (
+            "Hello! Welcome back to the fire chat. What should we talk about today?"
+        )
+        is_finishing_conversation = False
 
         while True:
-            try:
-                user_input = MultilineInput.get_multiline_input(prompt=prompt_msg)
-            except (KeyboardInterrupt, EOFError):
-                print("\nSurvey cancelled.")
-                raise
+            # Get user input
+            user_input = MultilineInput.get_multiline_input(interviewer_question)
+            conversation.append(
+                QuestionAndAnswer(question=interviewer_question, answer=user_input)
+            )
 
-            if not user_input:
-                continue
+            # Termination condition
+            if user_input.lower().strip() in ["stop", "end", "exit"]:
+                is_finishing_conversation = True
 
-            result = await agent.run(user_input, message_history=message_history)
-            data = result.output
+            if is_finishing_conversation:
+                missing_fields = final_output_state.check_completeness()
 
-            message_history = result.all_messages()
-            # logger.debug(f"🎨 [Survey Agent] {message_history=}")
+                if not missing_fields:
+                    logger.info("Finishing this chat. Thank you for your input. ")
+                    logger.debug("\n--- ✅ Final Output Generated ---")
+                    logger.debug(final_output_state.model_dump_json(indent=2))
+                    logger.debug(
+                        "\nAgent: Thanks for the great chat! Here is your summary."
+                    )
 
-            if isinstance(data, SurveyComplete):
-                ctx.state.survey_data = data.survey_data
-                logger.info("🤖🤔 Great! I have gathered all requirements.")
-                break
-            else:
-                prompt_msg = data.question
+                    chat_details = ChatDetails.build(
+                        fireside_chat_output=final_output_state,
+                        questions_and_answers=conversation,
+                    )
+                    ctx.state.survey_data = chat_details
 
-        logger.debug(f"🤖🤔 [Survey data] {ctx.state.survey_data}")
+                    # dump intermediate file
+                    filename = FileUtils.write_temporary_markdown_file(
+                        content=chat_details,
+                        filename=f"{FileUtils.get_timestamp()}_chat.json",
+                    )
+                    logger.info(f"🤖🤓 Intermediate chat dumped to {filename}")
+
+                    break
+                else:
+                    # If incomplete, use the agent to generate a polite explanation
+                    # instead of just printing a system error message.
+                    explanation_prompt = (
+                        f"The user wants to stop, but we are missing the following details: {', '.join(missing_fields)}. "
+                        "Please explain to the user that we need a little more information on these specific points "
+                        "to generate a complete summary. Be polite and conversational."
+                    )
+
+                    # Run agent specifically to generate the "missing info" explanation
+                    explanation_result = await fireside_chat_agent.run(
+                        explanation_prompt, message_history=message_history
+                    )
+
+                    interviewer_question = explanation_result.output.message
+
+                    # We add this interaction to history so the agent remembers why it stopped
+                    message_history.extend(explanation_result.new_messages())
+
+                    # Continue the loop so the user can provide the missing info
+                    continue
+
+            # Normal conversation flow
+            result = await fireside_chat_agent.run(
+                user_input, message_history=message_history
+            )
+
+            # Extract data from the result
+            response_turn: ConversationTurn = result.output
+            final_output_state = response_turn.current_data
+
+            # Update history
+            message_history.extend(result.new_messages())
+
+            # Print agent's natural language response
+            interviewer_question = response_turn.message
+
         return ResearchPlanningNode()
 
 
@@ -67,6 +137,9 @@ class ResearchPlanningNode(BaseNode[ResearchState, ResearchDeps]):
         user_prompt = "Please generate a research plan based on the requirements provided in the SurveyData. "
 
         count = 1
+        if ctx.state.survey_data is None:
+            raise RuntimeError("Survey data not provided.")
+
         deps = ResearchPlanningDependencies(survey_data=ctx.state.survey_data)
         while True:
             print(f"\nGenerating research plan ({count})...")
@@ -191,7 +264,8 @@ class EditorNode(BaseNode[ResearchState, ResearchDeps]):
 
         # dump intermediate file
         filename = FileUtils.write_temporary_markdown_file(
-            content=result.output, filename=f"{FileUtils.get_timestamp()}_editor_skeleton.json"
+            content=result.output,
+            filename=f"{FileUtils.get_timestamp()}_editor_skeleton.json",
         )
         logger.info(f"🤖🪜 Intermediate editor output dumped to {filename}")
 
@@ -234,10 +308,10 @@ class WriterNode(BaseNode[ResearchState, ResearchDeps]):
         logger.info("🤖📝 Report draft generated successfully.")
 
         filename = FileUtils.write_temporary_markdown_file(
-            content=result.output, filename=f"{FileUtils.get_timestamp()}_writer_draft.json"
+            content=result.output,
+            filename=f"{FileUtils.get_timestamp()}_writer_draft.json",
         )
         logger.info(f"🤖🪜 Draft writer output dumped to {filename}")
-
 
         return ProofReadNode()
 
@@ -265,7 +339,8 @@ class ProofReadNode(BaseNode[ResearchState, ResearchDeps]):
         res_data: ProofreadResult = result.output
 
         filename = FileUtils.write_temporary_markdown_file(
-            content=res_data, filename=f"{FileUtils.get_timestamp()}_reviewer_draft.json"
+            content=res_data,
+            filename=f"{FileUtils.get_timestamp()}_reviewer_draft.json",
         )
         logger.info(f"🤖🪜 Draft writer output dumped to {filename}")
 
@@ -301,7 +376,6 @@ class ProofReadNode(BaseNode[ResearchState, ResearchDeps]):
 
             ctx.state.proofreader_feedback = res_data.feedback
             return WriterNode()
-
 
 
 # Graph Builder Setup

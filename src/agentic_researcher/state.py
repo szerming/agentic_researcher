@@ -3,25 +3,9 @@ from pydantic import BaseModel, Field
 from typing import List, Optional
 
 
-class SurveyData(BaseModel):
-    topic: str = Field(description="The core topic of interest for the research.")
-    scope: str = Field(
-        description="The scope of the research, defining limits or boundaries."
-    )
-    context: str = Field(
-        description="The background context or target audience for the research."
-    )
-    use_case: str = Field(
-        description="The primary use cases or applications for the report."
-    )
-    areas_of_interest: List[str] = Field(
-        default_factory=list,
-        description="Specific subtopics or questions the user is highly interested in.",
-    )
-    additional_notes: str = Field(
-        default="",
-        description="Any other constraints or instructions given by the user.",
-    )
+class QuestionAndAnswer(BaseModel):
+    question: str
+    answer: str
 
 
 class Subtopic(BaseModel):
@@ -131,7 +115,7 @@ class ReportSkeleton(BaseModel):
 
 
 class ResearchState(BaseModel):
-    survey_data: Optional[SurveyData] = Field(
+    survey_data: Optional[ChatDetails] = Field(
         default=None,
         description="Detailed user requirements gathered during the survey.",
     )
@@ -159,20 +143,113 @@ class ResearchState(BaseModel):
         description="The number of draft-proofread revision cycles completed.",
     )
 
+
 class ResearchPlanningDependencies(BaseModel):
-    """Input to the research planning stage. 
-    This contains the survey data, forming the base requirements, and optional previous 
+    """Input to the research planning stage.
+    This contains the survey data, forming the base requirements, and optional previous
     research plan and user feedback for revision.
     """
-    survey_data: SurveyData = Field(
-        description="Survey data from the user, providing the foundational requirements for the research plan."
+
+    survey_data: ChatDetails = Field(
+        description="Details of the discussion on the topic, providing the foundational requirements for the research plan."
     )
     previous_plan: Optional[ResearchPlan] = Field(
         default=None,
-        description="Optional previous research plan. If provided, the agent should review and potentially revise it based on user feedback."
+        description="Optional previous research plan. If provided, the agent should review and potentially revise it based on user feedback.",
     )
     user_feedback: Optional[str] = Field(
         default=None,
-        description="Optional user feedback on the previous plan. If provided, the agent should incorporate this feedback while revising the research plan."
+        description="Optional user feedback on the previous plan. If provided, the agent should incorporate this feedback while revising the research plan.",
     )
-    
+
+
+class FiresideChatOutput(BaseModel):
+    """The structured data we aim to populate through the conversation."""
+
+    topic: str = Field(
+        default=None, description="The main theme or topic of the fireside chat."
+    )
+    scope: str = Field(
+        default=None,
+        description="The scope of the discussion, defining limits or boundaries.",
+    )
+    context: str = Field(
+        default=None,
+        description="The background, setting, or landscape surrounding the topic.",
+    )
+    purpose: str = Field(
+        default=None,
+        description="The core objective or why this conversation is happening.",
+    )
+    audience: str = Field(
+        default=None, description="The target demographic or audience for this summary."
+    )
+    summary: str = Field(default=None, description="An summary of the conversation.")
+    keypoints: list[str] = Field(
+        default_factory=list,
+        description="A list of at least 5 statements, information, details from the chat.",
+    )
+    keywords: list[str] = Field(
+        default_factory=list,
+        description="A list of 3-7 core keywords or tags from the chat.",
+    )
+
+    def check_completeness(self) -> list[str]:
+        """Checks if the FiresideChatOutput is fully populated."""
+
+        missing_fields = []
+
+        if not self.topic:
+            missing_fields.append("topic")
+        if not self.scope:
+            missing_fields.append("scope")
+        if not self.context:
+            missing_fields.append("context")
+        if not self.purpose:
+            missing_fields.append("purpose")
+        if not self.audience:
+            missing_fields.append("audience")
+        if not self.summary:
+            missing_fields.append("summary")
+
+        # Keywords should ideally have at least 3 items based on description,
+        # but strictly we check if it's empty for basic completeness.
+        if not self.keypoints or len(self.keypoints) < 5:
+            missing_fields.append("keypoints")
+        if not self.keywords:
+            missing_fields.append("keywords")
+
+        return missing_fields
+
+
+class ConversationTurn(BaseModel):
+    """
+    The return type for the agent.
+    It allows the agent to output both the natural language response
+    and the current state of the structured data simultaneously.
+    """
+
+    message: str = Field(
+        description="The natural language follow-up message to the user. "
+        "Primary intention: steer conversation to populate data. "
+        "Secondary intention: keep the conversation flow."
+    )
+    current_data: FiresideChatOutput = Field(
+        description="The updated state of the FiresideChatOutput model based on the conversation so far."
+    )
+
+
+class ChatDetails(FiresideChatOutput):
+    questions_and_answers: list[QuestionAndAnswer] = Field(
+        default_factory=list, description="The complete transcript of the conversation."
+    )
+
+    @staticmethod
+    def build(
+        fireside_chat_output: FiresideChatOutput,
+        questions_and_answers: list[QuestionAndAnswer],
+    ) -> ChatDetails:
+        return ChatDetails(
+            **fireside_chat_output.model_dump(),
+            questions_and_answers=questions_and_answers,
+        )
