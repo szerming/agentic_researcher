@@ -9,7 +9,7 @@ from agentic_researcher.agents.planning import get_planning_agent
 from agentic_researcher.agents.researcher import get_researcher_agent
 from agentic_researcher.agents.editor import get_editor_agent
 from agentic_researcher.agents.writer import get_writer_agent
-from agentic_researcher.agents.proofreader import get_proofreader_agent
+from agentic_researcher.agents.proofreader import get_proofreader_agent, ProofreadResult
 from loguru import logger
 from agentic_researcher.utils.file_utils import FileUtils
 
@@ -191,7 +191,7 @@ class EditorNode(BaseNode[ResearchState, ResearchDeps]):
 
         # dump intermediate file
         filename = FileUtils.write_temporary_markdown_file(
-            content=result.output, filename="editor_skeleton.json"
+            content=result.output, filename=f"{FileUtils.get_timestamp()}_editor_skeleton.json"
         )
         logger.info(f"🤖🪜 Intermediate editor output dumped to {filename}")
 
@@ -232,11 +232,18 @@ class WriterNode(BaseNode[ResearchState, ResearchDeps]):
         result = await agent.run(prompt)
         ctx.state.draft_report = result.output
         logger.info("🤖📝 Report draft generated successfully.")
+
+        filename = FileUtils.write_temporary_markdown_file(
+            content=result.output, filename=f"{FileUtils.get_timestamp()}_writer_draft.json"
+        )
+        logger.info(f"🤖🪜 Draft writer output dumped to {filename}")
+
+
         return ProofReadNode()
 
 
 class ProofReadNode(BaseNode[ResearchState, ResearchDeps]):
-    MAX_ITERATIONS = 3
+    MAX_ITERATIONS = 10
 
     async def run(
         self, ctx: GraphRunContext[ResearchState, ResearchDeps]
@@ -255,7 +262,12 @@ class ProofReadNode(BaseNode[ResearchState, ResearchDeps]):
         )
 
         result = await agent.run(prompt)
-        res_data = result.output
+        res_data: ProofreadResult = result.output
+
+        filename = FileUtils.write_temporary_markdown_file(
+            content=res_data, filename=f"{FileUtils.get_timestamp()}_reviewer_draft.json"
+        )
+        logger.info(f"🤖🪜 Draft writer output dumped to {filename}")
 
         if res_data.satisfied:
             logger.info(
